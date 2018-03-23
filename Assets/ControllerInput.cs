@@ -20,7 +20,8 @@ public class ControllerInput : MonoBehaviour {
 	
 	private void HandlePadClicked(object sender, ClickedEventArgs e)
 	{
-
+		//Collect all items for testing
+		manager.Gather();
 	}
 
 	private void HandleTriggerClicked(object sender, ClickedEventArgs e)
@@ -55,5 +56,12 @@ public class ControllerInput : MonoBehaviour {
 			return;
 		
 		collidingObject = col.gameObject;
+	}
+
+	void OnDestroy() {
+		_controller.TriggerClicked -= HandleTriggerClicked;
+		_controller.TriggerUnclicked -= HandleTriggerUnclicked;
+		_controller.PadClicked -= HandlePadClicked;
+		_controller.Gripped -= HandleGripClicked;
 	}
 }

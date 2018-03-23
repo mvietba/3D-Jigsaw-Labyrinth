@@ -8,6 +8,8 @@ public class GameManager : MonoBehaviour {
 	public GameObject piecesHolder;
 	public GameObject player;
 	public GameObject cameraRig;
+	public GameObject leftController;
+	public GameObject rightController;
 	//public Text scoreTxt;
 	private int piecesCount;
 	private float speed;
@@ -37,7 +39,7 @@ public class GameManager : MonoBehaviour {
 			piece.SetActive (false);
 			collectedCount += 1;
 			Debug.Log (collectedCount);
-			if (collectedCount == 1) {//piecesCount
+			if (collectedCount == piecesCount) {
 				OnAllPiecesGathered ();
 			}
 		}
@@ -47,24 +49,37 @@ public class GameManager : MonoBehaviour {
 		speed += modifier;
 		speed = Mathf.Max (speed, 1.0f); //speed should not be too low
 	}
+
+	public void Gather() {
+		collectedCount = piecesCount;
+		OnAllPiecesGathered ();
+	}
+
 	private void OnAllPiecesGathered()
 	{
 		Debug.Log ("All pieces collected!");
 		for (int i = 0; i < piecesCount; i++) {
 			Transform childTransform = piecesHolder.transform.GetChild(i);
-			childTransform.position = new Vector3(cameraRig.transform.position.x + Random.Range(0.0f, 5.0f), 
-				cameraRig.transform.position.y, cameraRig.transform.position.z + Random.Range(0.0f, 5.0f));
+			childTransform.position = new Vector3(player.transform.position.x + Random.Range(0.0f, 3.0f), 
+				player.transform.position.y * 0.75f, player.transform.position.z + Random.Range(0.0f, 3.0f));
 			childTransform.gameObject.SetActive (true);
 			childTransform.gameObject.GetComponent<Rotator> ().enabled = false;
-			childTransform.gameObject.GetComponent<Rigidbody>().useGravity = true;
-			childTransform.gameObject.GetComponent<Rigidbody>().isKinematic = false;
-
-			//Debug.Log (childTransform.position);
-			//Debug.Log (cameraRig.transform.position);
-			//Debug.Log (player.transform.position);
 		}
+		Destroy (leftController.GetComponent<ControllerInput> ());
+		Destroy (rightController.GetComponent<ControllerInput> ());
+
+		//Enable new interaction script
+		leftController.GetComponent<ControllerGrabObject> ().enabled = true;
+		rightController.GetComponent<ControllerGrabObject> ().enabled = true;
+
 	}
 
+	public void TryToSnap(GameObject piece) {
+		//For all other children, check if any of the neighbours is within a small threshold of distance and small orientation difference
+		//If true, snap them together
+		// Copy orientation + place in a correct distance, parallel to floor
+		//add to the same parent (in correct coordinates, extract from name)
+	}
 	//private void UpdateText() {
 	//	scoreTxt.text = "Remaining: " + (piecesCount - collectedCount).ToString ();
 	//}
