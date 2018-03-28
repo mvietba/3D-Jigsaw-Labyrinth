@@ -61,7 +61,6 @@ public class ControllerGrabObject : MonoBehaviour
         {
             return;
         }
-		Debug.Log ("OnTriggerExit: " +collidingObject.name);
         collidingObject = null;
     }
 
@@ -71,8 +70,9 @@ public class ControllerGrabObject : MonoBehaviour
         {
             return;
         }
-
         collidingObject = col.gameObject;
+		manager.ChangeKinematic (collidingObject);
+
     }
 
     void Update()
@@ -96,37 +96,24 @@ public class ControllerGrabObject : MonoBehaviour
 
     private void GrabObject()
     {
-		Debug.Log ("Grab object");
         objectInHand = collidingObject;
         collidingObject = null;
-		Debug.Log ("Object in hand: " + objectInHand.name);
 
-		FixedJoint joint = AddFixedJoint();
+		FixedJoint joint = gameObject.AddComponent<FixedJoint>();
         joint.connectedBody = objectInHand.GetComponent<Rigidbody>();
-		Debug.Log ("Joint: " + joint.ToString());
-
     }
-
-    private FixedJoint AddFixedJoint()
-    {
-        FixedJoint fx = gameObject.AddComponent<FixedJoint>();
-        //fx.breakForce = 20000;
-        //fx.breakTorque = 20000;
-        return fx;
-    }
-
+		
     private void ReleaseObject()
     {
         if (GetComponent<FixedJoint>())
         {
             GetComponent<FixedJoint>().connectedBody = null;
             Destroy(GetComponent<FixedJoint>());
-            objectInHand.GetComponent<Rigidbody>().velocity = Controller.velocity;
-            objectInHand.GetComponent<Rigidbody>().angularVelocity = Controller.angularVelocity;
         }
-		Debug.Log ("Release");
+		var tmp = objectInHand;
+		objectInHand = null;
 		//Call manager and ask to check whether to snap
-		//manager.TryToSnap(objectInHand);
-        objectInHand = null;
+		manager.TryToSnap(tmp);
+		manager.ChangeKinematic (objectInHand);
     }
 }
