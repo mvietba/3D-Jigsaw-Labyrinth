@@ -48,6 +48,7 @@ public class ControllerGrabObject : MonoBehaviour
 
     public void OnTriggerEnter(Collider other)
     {
+		manager.OnTriggerBtnPressed ();
         SetCollidingObject(other);
     }
 
