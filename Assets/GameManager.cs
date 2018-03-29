@@ -13,16 +13,26 @@ public class GameManager : MonoBehaviour {
 	public GameObject rightController;
 	public Text scoreTxt;
 	public Text endTxt;
+	public Text instructionTxt;
+	public Text titleText;
+	public GameObject panel;
+	public float posThreshold;
+	public float rotThreshold;
 	private float speed;
 	private bool movement;
 	private int piecesAmt;
 	private int collectedCnt;
 	private int correctPiecesCnt;
 	private Vector3 defaultPos;
-	public float posThreshold;
-	public float rotThreshold;
 	private List<string> snappedList;
+	private string[] instructionTitles;
+	private string[] instructions;
 	private int notKinematicMax;
+	private int instrFirst;
+	private int instrCnt;
+	public bool collectMode;
+	private bool solveJigsawMode;
+
 	// Use this for initialization
 	void Start () {
 		movement = false;
@@ -37,49 +47,129 @@ public class GameManager : MonoBehaviour {
 		defaultPos = cameraRig.transform.position;
 		Physics.defaultSolverIterations = 100;
 		Physics.defaultSolverVelocityIterations = 50;
-		scoreTxt.text = "Remaining: " + piecesAmt.ToString ();
+		instructionTitles = new string[]{"Gameplay", "Locomotion", "Speed", "Collect Interaction", "Collect All", "Congratulations!", "Locomotion", "Grabbing Piece", "Changing Rotation and Position", "Correct Placement", "Snapping Mechanics", "Jigsaw Manipulation"};
+		instructions = new string[]{
+			"Explore the labyrinth and collect jigsaw pieces.\nAll pieces must be collected before starting to solve the jigsaw.\nA counter with the number of remaining pieces will be shown in the upper left corner.",
+			"Press and hold left trigger button to move in the direction that your head is facing. Release the button to look around without moving.",
+			"Press left grip button to increase the movement speed and right grip button to decrease it.",
+			"Touch a jigsaw piece with a right controller and press the right trigger button to collect it to your inventory.",
+			"If you want to skip the labyrinth part and just solve the jigsaw, press a touch pad to collect all pieces immediately. \nHave fun!",
+			"All pieces collected. They are now released around you.",
+			"Locomotion is now disabled and you can move around in a natural way.",
+			"To grab a jigsaw piece, touch it with a controller and press the trigger button. Release the trigger button to release the object. Both controllers can be used.",
+			"Once a piece is grabbed, its position and rotation changes in accordance to the controller holding it.\nTip: Rotating can be easier using two hands in turns!",
+			"A piece is in a correct position when it makes a quick movement (\"snap\") and has white particles around it after being released.",
+			"The first piece that is grabbed becomes a reference. Other pieces are then snapped if released within small positional and rotational thresholds from their correct placements, relative to the first piece.",
+			"At the beginning, moving a snapped piece moves all other snapped pieces. This allows putting the jigsaw in a comfortable position. After 10 pieces are snapped, manipulation is disabled. \nGood luck!"
+								};
+		instrFirst = 6;
+		instrCnt = 0;
+		collectMode = false;
+		solveJigsawMode = false;
+		UpdateInstructions ();
 		//UpdateText ();
 	}
 	
 	// Update is called once per frame
 	void Update() {
-		if (movement)
-			cameraRig.transform.position += new Vector3(player.transform.forward.x * Time.deltaTime * speed, 0, player.transform.forward.z * Time.deltaTime * speed);
-
-		if (correctPiecesCnt == piecesAmt)
-			endTxt.enabled = true;
+		if (collectMode) {
+			if (movement)
+				cameraRig.transform.position += new Vector3 (player.transform.forward.x * Time.deltaTime * speed, 0, player.transform.forward.z * Time.deltaTime * speed);
+		}
+		else if (solveJigsawMode) {
+			if (correctPiecesCnt == piecesAmt) {
+				endTxt.gameObject.SetActive(true);
+				solveJigsawMode = false;
+			}
+		}
 	}
-	public void Move(bool m) {
+
+	#region input event handlers
+	public void OnTouchPadPressed() {
+		if (collectMode)
+			OnAllCollected(); //Collect all items for testing
+	}
+
+	public void OnTriggerBtnPressed(string controller, GameObject collidingObject = null) {
+
+		if (!collectMode && !solveJigsawMode) {
+			
+			UpdateInstructions ();
+
+			if (instrCnt == instrFirst) {
+				collectMode = true;
+				panel.SetActive (false);
+				scoreTxt.gameObject.SetActive(true);
+				UpdateText ();
+			}
+
+			else if (instrCnt == instructions.Length) {
+				solveJigsawMode = true;
+				panel.SetActive (false);
+				SetupSolveJigsawMode ();
+
+			}
+
+		} else if (collectMode && !solveJigsawMode) {
+			if (controller.Contains ("left"))
+				Move (true);
+			else if (controller.Contains ("right") && collidingObject)
+				PutInInventory (collidingObject);
+		}
+	}
+
+	public void OnTriggerBtnReleased(string controller) {
+		if (collectMode) {
+			if (controller.Contains ("left"))
+				Move (false);
+		}
+	}
+
+	public void OnGripPressed(string controller) {
+		if (collectMode) {
+			if (controller.Contains ("left"))
+				ChangeSpeed (0.5f);
+			else if (controller.Contains ("right"))
+				ChangeSpeed (-0.5f);
+		}
+	}
+
+	#endregion
+
+	#region Collect mode
+	private void Move(bool m) {
 		movement = m; // constant movement on trigger pressed
 		//movement = ! movement; //constant movement on/off
 	}
-
-	public void PutInInventory(GameObject piece)
+		
+	private void PutInInventory(GameObject piece)
 	{
 		if (piece.transform.IsChildOf (pieces.transform)) {
 			piece.SetActive (false);
 			collectedCnt += 1;
 			UpdateText ();
 			if (collectedCnt == piecesAmt) {
-				OnAllPiecesGathered ();
+				SetupSolveJigsawMode ();
 			}
 		}
 	}
 
-	public void ChangeSpeed(float modifier) {
+	private void ChangeSpeed(float modifier) {
 		speed += modifier;
 		speed = Mathf.Max (speed, 1.0f); //speed should not be too low
 	}
 
-	public void Gather() {
+	public void OnAllCollected() {
+		collectMode = false;
 		collectedCnt = piecesAmt;
-		OnAllPiecesGathered ();
+		scoreTxt.gameObject.SetActive(false);
+		panel.SetActive (true);
 	}
 
-	private void OnAllPiecesGathered()
+	private void SetupSolveJigsawMode()
 	{
-		Debug.Log ("All pieces collected!");
-		scoreTxt.enabled = false;
+		Debug.Log ("Setting up Jigsaw");
+		scoreTxt.gameObject.SetActive(false);
 		cameraRig.transform.position = defaultPos;
 		for (int i = 0; i < piecesAmt; i++) {
 			Transform childTf = pieces.transform.GetChild(i);
@@ -92,12 +182,16 @@ public class GameManager : MonoBehaviour {
 		Destroy (rightController.GetComponent<ControllerInput> ());
 
 		//Enable new interaction script
-		leftController.GetComponent<ControllerGrabObject> ().enabled = true;
-		rightController.GetComponent<ControllerGrabObject> ().enabled = true;
+		leftController.AddComponent<ControllerGrabObject> ();
+		rightController.AddComponent<ControllerGrabObject> ();
 
 	}
 
+	#endregion
+
+	#region Solve jigsaw mode
 	public void ChangeKinematic(GameObject piece) {
+		Debug.Log ("Change Kinematic");
 		bool isKinematic = true;
 		if (piece != null && correctPiecesCnt <= notKinematicMax) {
 			if (snappedList.Contains (piece.name)) {
@@ -174,8 +268,19 @@ public class GameManager : MonoBehaviour {
 		for (int i = 0; i < notKinematicMax; i++)
 			pieces.transform.Find (snappedList [i]).gameObject.GetComponent<Rigidbody> ().isKinematic = true;
 	}
+	#endregion
+
+
+	#region update UI
+	private void UpdateInstructions()
+	{
+		instructionTxt.text = instructions [instrCnt];
+		titleText.text = instructionTitles [instrCnt];
+		instrCnt += 1;
+	}
 
 	private void UpdateText() {
 		scoreTxt.text = "Remaining: " + (piecesAmt - collectedCnt).ToString ();
 	}
+	#endregion
 }

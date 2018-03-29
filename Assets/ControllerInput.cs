@@ -20,42 +20,33 @@ public class ControllerInput : MonoBehaviour {
 	
 	private void HandlePadClicked(object sender, ClickedEventArgs e)
 	{
-		//Collect all items for testing
-		manager.Gather();
+		manager.OnTouchPadPressed ();
 	}
 
 	private void HandleTriggerClicked(object sender, ClickedEventArgs e)
 	{
-		if (this.name.Contains ("left")) {
-			manager.Move (true);
-		} else if (this.name.Contains ("right") && collidingObject) {
-				manager.PutInInventory (collidingObject);
+		manager.OnTriggerBtnPressed (this.name, collidingObject);
+		if (this.name.Contains ("right") && collidingObject)
 				collidingObject = null;
-		}	
 	}
 
-	//For constant movement mode
 	private void HandleTriggerUnclicked(object sender, ClickedEventArgs e)
 	{
-		if (this.name.Contains ("left")) {
-			manager.Move (false);
-		}
+		manager.OnTriggerBtnReleased (this.name);
 	}
 
 	private void HandleGripClicked(object sender, ClickedEventArgs e)
 	{
-		if (this.name.Contains ("left")) 
-			manager.ChangeSpeed (0.5f);
-		else if (this.name.Contains ("right")) 
-			manager.ChangeSpeed (-0.5f);
+		manager.OnGripPressed (this.name);
 	}		
 
 	public void OnTriggerEnter(Collider col)
 	{
-		if (!col.GetComponent<Rigidbody> ()) 
-			return;
-		
-		collidingObject = col.gameObject;
+		if (manager.collectMode) {
+			if (!col.GetComponent<Rigidbody> ())
+				return;
+			collidingObject = col.gameObject;
+		}
 	}
 
 	void OnDestroy() {

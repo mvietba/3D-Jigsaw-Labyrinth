@@ -25,13 +25,14 @@ using UnityEngine;
 public class ControllerGrabObject : MonoBehaviour
 {
     private SteamVR_TrackedObject trackedObj;
-	public GameObject pieceHolder;
+	private GameObject pieces;
     private GameObject collidingObject;
     private GameObject objectInHand;
 	private GameManager manager;
 
 	void Start() {
 		manager = GameObject.Find("GameManager").GetComponent<GameManager>();
+		pieces = manager.pieces;
 	}
 
     private SteamVR_Controller.Device Controller
@@ -57,7 +58,7 @@ public class ControllerGrabObject : MonoBehaviour
 
     public void OnTriggerExit(Collider other)
     {
-        if (!collidingObject)
+		if (!collidingObject)
         {
             return;
         }
@@ -66,17 +67,19 @@ public class ControllerGrabObject : MonoBehaviour
 
     private void SetCollidingObject(Collider col)
     {
-		if (collidingObject || !col.GetComponent<Rigidbody>() || !col.gameObject.transform.IsChildOf (pieceHolder.transform))
+		if (collidingObject || !col.GetComponent<Rigidbody>() || !col.gameObject.transform.IsChildOf (pieces.transform))
         {
             return;
         }
-        collidingObject = col.gameObject;
+
+		collidingObject = col.gameObject;
 		manager.ChangeKinematic (collidingObject);
 
     }
 
     void Update()
     {
+
         if (Controller.GetHairTriggerDown())
         {
             if (collidingObject)
